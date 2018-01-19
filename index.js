@@ -1,0 +1,175 @@
+"use strict";
+
+const ccxt      = require ('ccxt')
+const asTable   = require ('as-table')
+const log       = require ('ololog').configure ({ locate: false })
+
+require ('ansicolor').nice;
+
+let printSupportedExchanges = function () {
+    log ('Supported exchanges:', ccxt.exchanges.join (', ').green)
+}
+
+let printUsage = function () {
+    log ('Usage: node', process.argv[1], 'id1'.green, 'id2'.yellow, 'id3'.blue, '...')
+    printSupportedExchanges ()
+}
+
+let printExchangeSymbolsAndMarkets = function (exchange) {
+    log (getExchangeSymbols (exchange))
+    log (getExchangeMarketsTable (exchange))
+}
+
+let getExchangeMarketsTable = (exchange) => {
+    return asTable.configure ({ delimiter: ' | ' }) (Object.values (markets))
+}
+
+let sleep = (ms) => new Promise (resolve => setTimeout (resolve, ms));
+
+let proxies = [
+    '', // no proxy by default
+    'https://crossorigin.me/',
+    'https://cors-anywhere.herokuapp.com/',
+]
+
+;(async function main () {
+
+    if (process.argv.length > 3) {
+
+        let ids = process.argv.slice (2)
+        let exchanges = {}
+        let tickers = {}
+
+        log (ids.join (', ').yellow)
+
+        // load all markets from all exchanges 
+        for (let id of ids) {
+
+            // instantiate the exchange by id
+            let exchange = new ccxt[id] ()
+
+            // save it in a dictionary under its id for future use
+            exchanges[id] = exchange
+
+            // load all markets from the exchange
+            let markets = await exchange.loadMarkets ()
+            if (exchange.hasFetchTickers) {
+                tickers[id] = await exchange.fetchTickers ()
+            }
+
+            // basic round-robin proxy scheduler
+            let currentProxy = 0
+            let maxRetries   = proxies.length
+            
+            for (let numRetries = 0; numRetries < maxRetries; numRetries++) {
+
+                try { // try to load exchange markets using current proxy
+
+                    exchange.proxy = proxies[currentProxy]
+                    await exchange.loadMarkets ()
+
+                } catch (e) { // rotate proxies in case of connectivity errors, catch all other exceptions
+
+                    // swallow connectivity exceptions only
+                    if (e instanceof ccxt.DDoSProtection || e.message.includes ('ECONNRESET')) {
+                        log.bright.yellow ('[DDoS Protection Error] ' + e.message)
+                    } else if (e instanceof ccxt.RequestTimeout) {
+                        log.bright.yellow ('[Timeout Error] ' + e.message)
+                    } else if (e instanceof ccxt.AuthenticationError) {
+                        log.bright.yellow ('[Authentication Error] ' + e.message)
+                    } else if (e instanceof ccxt.ExchangeNotAvailable) {
+                        log.bright.yellow ('[Exchange Not Available Error] ' + e.message)
+                    } else if (e instanceof ccxt.ExchangeError) {
+                        log.bright.yellow ('[Exchange Error] ' + e.message)
+                    } else {
+                        throw e; // rethrow all other exceptions
+                    }
+
+                    // retry next proxy in round-robin fashion in case of error
+                    currentProxy = ++currentProxy % proxies.length 
+                }
+            }
+
+            log (id.green, 'loaded', exchange.symbols.length.green, 'markets')
+        }
+
+        log ('Loaded all markets / tickers'.green)
+
+        // get all unique symbols
+        let uniqueSymbols = ccxt.unique (ccxt.flatten (ids.map (id => exchanges[id].symbols)))
+
+        // filter out symbols that are not present on at least two exchanges
+        let arbitrableSymbols = uniqueSymbols
+            .filter (symbol => 
+                ids.filter (id => 
+                    (exchanges[id].symbols.indexOf (symbol) >= 0)).length > 1)
+            .sort ((id1, id2) => (id1 > id2) ? 1 : ((id2 > id1) ? -1 : 0))
+
+
+        // print a table of arbitrable symbols
+        let table = arbitrableSymbols.map (symbol => {
+            let row = { symbol }
+            for (let id of ids)
+                if (exchanges[id].symbols.indexOf (symbol) >= 0)
+                    row[id] = id
+            return row
+        })
+
+       log (asTable.configure ({ delimiter: ' | ' }) (table))
+
+        // print a table of arbitrable spread
+        let prices = arbitrableSymbols.map (symbol => {
+            let row = { }
+
+            for (let id of ids)            
+                if (tickers[id][symbol]) {
+                    if (exchanges[id].symbols.indexOf (symbol) >= 0)
+                        row[id] = { symbol: symbol, price: tickers[id][symbol].last }
+            }
+
+            return row
+        })
+        // log(prices)
+
+        let spreads = prices.map(value => {
+            let spread = {}
+            let max = -Infinity
+            let min = Infinity
+            let price = 0
+            let symbol = ''
+            let maxe = 0
+            let mine = 0
+            for (let exchange in value) {
+                price = value[exchange].price
+                symbol = value[exchange].symbol
+
+                if (price > max) {
+                    max = price
+                    maxe = exchange
+                }
+                if (price < min) {
+                    min = price
+                    mine = exchange
+                }
+                // pair = price[]
+            }
+            
+            let row = [ { symbol: symbol, min: min, min_exchange: mine, max: max, max_exchange: maxe, spread: (max-min)/max*100}]
+            // log(row)
+
+            return row
+        })
+
+        log(spreads)
+        //  log (asTable.configure ({ delimiter: ' | ' }) (spreads))
+
+
+    } else {
+
+        printUsage ()
+
+    }
+
+    process.exit ()
+
+}) ()
