@@ -1,9 +1,8 @@
-"use strict";
+'use strict';
 
 const ccxt      = require ('ccxt')
 const asTable   = require ('as-table')
 const log       = require ('ololog').configure ({ locate: false })
-const ansi      = require ('ansicolor').nice
 
 const spread_treshold = 2
 
