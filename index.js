@@ -3,6 +3,9 @@
 const ccxt      = require ('ccxt')
 const asTable   = require ('as-table')
 const log       = require ('ololog').configure ({ locate: false })
+const ansi      = require ('ansicolor').nice
+
+const spread_treshold = 2
 
 require ('ansicolor').nice;
 
@@ -115,7 +118,7 @@ let proxies = [
             return row
         })
 
-       log (asTable.configure ({ delimiter: ' | ' }) (table))
+        log (asTable.configure ({ delimiter: ' | ' }) (table))
 
         // print a table of arbitrable spread
         let prices = arbitrableSymbols.map (symbol => {
@@ -123,9 +126,10 @@ let proxies = [
 
             for (let id of ids)            
                 if (tickers[id][symbol]) {
-                    if (exchanges[id].symbols.indexOf (symbol) >= 0)
+                    if (exchanges[id].symbols.indexOf (symbol) >= 0) {
                         row[id] = { symbol: symbol, price: tickers[id][symbol].last }
-            }
+                    }
+                }
 
             return row
         })
@@ -151,18 +155,18 @@ let proxies = [
                     min = price
                     mine = exchange
                 }
-                // pair = price[]
             }
             
-            let row = [ { symbol: symbol, min: min, min_exchange: mine, max: max, max_exchange: maxe, spread: (max-min)/max*100}]
-            // log(row)
-
+            let row = {}
+            spread = (max-min)/max*100
+            if (spread > spread_treshold) {
+                row = { symbol: symbol, min: min, min_exchange: mine, max: max, max_exchange: maxe, spread: spread}
+            }
+          
             return row
         })
-
-        log(spreads)
-        //  log (asTable.configure ({ delimiter: ' | ' }) (spreads))
-
+        
+        log(asTable.configure ({ delimiter: ' | ' }) (spreads.filter(x => Object.keys(x).length !== 0)));
 
     } else {
 
