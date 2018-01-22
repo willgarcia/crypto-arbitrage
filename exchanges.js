@@ -4,27 +4,9 @@ const ccxt      = require ('ccxt')
 const asTable   = require ('as-table')
 const log       = require ('ololog').configure ({ locate: false })
 
-// console.log (ccxt.exchanges) // print all available exchanges
-
 let exchanges = ccxt.exchanges.map(function(name){
-    // console.log(exchange)
 
     let exchange = new ccxt[name] ()
-
-    if (name == 'binance')
-    console.log(exchange.urls.fees)
-
-    // { trading:
-    //     { tierBased: false,
-    //       percentage: true,
-    //       maker: 0.001,
-    //       taker: 0.0019 },
-    //    funding:
-    //     { tierBased: false,
-    //       percentage: false,
-    //       withdraw: { BTC: 0.001 },
-    //       deposit: { BTC: 0 } } }
-
     let fees_trading_maker = '-'
     let fees_trading_taker = '-'
     let fees_funding_withdraw = '-'
