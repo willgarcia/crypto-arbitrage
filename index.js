@@ -126,7 +126,7 @@ let proxies = [
             for (let id of ids)            
                 if (tickers[id][symbol]) {
                     if (exchanges[id].symbols.indexOf (symbol) >= 0) {
-                        row[id] = { symbol: symbol, price: tickers[id][symbol].last }
+                        row[id] = { symbol: symbol, price: tickers[id][symbol].last, datetime: tickers[id][symbol].datetime }
                     }
                 }
 
@@ -142,6 +142,9 @@ let proxies = [
             let symbol = ''
             let maxe = 0
             let mine = 0
+            let mindate = ''
+            let maxdate = ''
+
             for (let exchange in value) {
                 price = value[exchange].price
                 symbol = value[exchange].symbol
@@ -149,17 +152,19 @@ let proxies = [
                 if (price > max) {
                     max = price
                     maxe = exchange
+                    maxdate = value[exchange].datetime
                 }
                 if (price < min) {
                     min = price
                     mine = exchange
+                    mindate = value[exchange].datetime
                 }
             }
             
             let row = {}
             spread = (max-min)/max*100
             if (spread > spread_treshold) {
-                row = { symbol: symbol, min: min, min_exchange: mine, max: max, max_exchange: maxe, spread: spread}
+                row = { symbol: symbol, min: min, min_exchange: mine, min_date: mindate, max: max, max_exchange: maxe, max_date: maxdate, spread: spread}
             }
           
             return row
