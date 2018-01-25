@@ -12,11 +12,11 @@ cockroach sql --execute "use cryptowatch;show tables;show create table tickers;s
 
 List of available exchanges:
 ```
-node exchanges.js
+node exchanges-cli.js
 ```
 
 Spreads:
 
 ```
-node index.js binance kraken cex [...]
+node index-cli.js binance kraken cex [...]
 ```
