@@ -1,3 +1,6 @@
+# Cockroach DB
+roachdata/
+
 # Logs
 logs
 *.log

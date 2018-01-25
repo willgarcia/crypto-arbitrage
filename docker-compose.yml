@@ -1,0 +1,23 @@
+version: "3"
+services:
+  db:
+    image: cockroachdb/cockroach:v1.1.4
+    ports:
+    - "26257:26257"
+    volumes:
+    - "${PWD}/roachdata/roach1:/cockroach/cockroach-data"
+    command: start --insecure
+
+  binance:
+    build: .
+    image: live-ticker
+    command: node /app/live-tickers.js binance 10000
+    depends_on:
+      - db
+
+  kraken:
+    build: .
+    image: live-ticker
+    command: node /app/live-tickers.js kraken
+    depends_on:
+      - db
