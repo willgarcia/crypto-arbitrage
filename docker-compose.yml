@@ -11,13 +11,18 @@ services:
   binance:
     build: .
     image: live-ticker
-    command: node /app/live-tickers.js binance 10000
+    environment:
+     - NODE_ENV=production
+     - LT_EXCHANGE=binance
+     - LT_INTERVAL=10000
     depends_on:
       - db
 
   kraken:
     build: .
     image: live-ticker
-    command: node /app/live-tickers.js kraken
+    environment: 
+     - NODE_ENV=production
+     - LT_EXCHANGE=kraken
     depends_on:
       - db

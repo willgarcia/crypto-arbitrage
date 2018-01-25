@@ -19,10 +19,6 @@ const d_interval = 5000
 
 require ('ansicolor').nice;
 
-let printUsage = function () {
-    log ('Usage: node', process.argv[1], 'exchange'.green)
-}
-
 let loadTickers = async (id) => {
     let exchangeFound = ccxt.exchanges.indexOf (id) > -1
     if (exchangeFound) {
@@ -77,13 +73,13 @@ let loadTickers = async (id) => {
 }
 
 function main() {
-    if (process.argv.length > 2) {
-        const id = process.argv[2]
-        const interval = process.argv[3]
+    if (process.env.LT_EXCHANGE) {
+        const id = process.env.LT_EXCHANGE
+        const interval = process.env.LT_INTERVAL
         loadTickers(id)
         setTimeout(main, (interval) ? interval : d_interval);
     } else {
-        printUsage()
+        console.err('Exchange LT_EXCHANGE not found')
         process.exit()
     }
 }
